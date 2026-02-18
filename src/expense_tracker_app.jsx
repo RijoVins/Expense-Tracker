@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { PlusCircle, Trash2, TrendingUp, TrendingDown } from "lucide-react";
+import { PlusCircle, Trash2, TrendingUp, TrendingDown, Wallet, Edit2, Check, X } from "lucide-react";
 
 export default function ExpenseTrackerApp() {
   const [transactions, setTransactions] = useState([]);
@@ -13,6 +12,16 @@ export default function ExpenseTrackerApp() {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [filter, setFilter] = useState("all");
+
+  // Investment state
+  const [investments, setInvestments] = useState([]);
+  const [investmentType, setInvestmentType] = useState("");
+  const [investmentAmount, setInvestmentAmount] = useState("");
+  const [investmentProfitLoss, setInvestmentProfitLoss] = useState("");
+  const [editingInvestmentId, setEditingInvestmentId] = useState(null);
+  const [editInvestmentType, setEditInvestmentType] = useState("");
+  const [editInvestmentAmount, setEditInvestmentAmount] = useState("");
+  const [editInvestmentProfitLoss, setEditInvestmentProfitLoss] = useState("");
 
   const addTransaction = () => {
     if (!description || !amount) return;
@@ -31,6 +40,63 @@ export default function ExpenseTrackerApp() {
     setTransactions(transactions.filter((t) => t.id !== id));
   };
 
+  // Investment functions
+  const addInvestment = () => {
+    if (!investmentType || !investmentAmount) return;
+    const newInvestment = {
+      id: Date.now(),
+      type: investmentType,
+      amount: parseFloat(investmentAmount),
+      profitLoss: parseFloat(investmentProfitLoss) || 0,
+    };
+    setInvestments([newInvestment, ...investments]);
+    setInvestmentType("");
+    setInvestmentAmount("");
+    setInvestmentProfitLoss("");
+  };
+
+  const deleteInvestment = (id) => {
+    setInvestments(investments.filter((inv) => inv.id !== id));
+  };
+
+  const startEditInvestment = (investment) => {
+    setEditingInvestmentId(investment.id);
+    setEditInvestmentType(investment.type);
+    setEditInvestmentAmount(investment.amount.toString());
+    setEditInvestmentProfitLoss(investment.profitLoss.toString());
+  };
+
+  const saveEditInvestment = (id) => {
+    setInvestments(investments.map((inv) =>
+      inv.id === id
+        ? {
+            ...inv,
+            type: editInvestmentType,
+            amount: parseFloat(editInvestmentAmount),
+            profitLoss: parseFloat(editInvestmentProfitLoss) || 0,
+          }
+        : inv
+    ));
+    setEditingInvestmentId(null);
+    setEditInvestmentType("");
+    setEditInvestmentAmount("");
+    setEditInvestmentProfitLoss("");
+  };
+
+  const cancelEditInvestment = () => {
+    setEditingInvestmentId(null);
+    setEditInvestmentType("");
+    setEditInvestmentAmount("");
+    setEditInvestmentProfitLoss("");
+  };
+
+  const investmentTotals = useMemo(() => {
+    const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
+    const totalProfitLoss = investments.reduce((sum, inv) => sum + inv.profitLoss, 0);
+    const currentValue = totalInvested + totalProfitLoss;
+    return { totalInvested, totalProfitLoss, currentValue };
+  }, [investments]);
+
   const totals = useMemo(() => {
     const income = transactions
       .filter((t) => t.type === "income")
@@ -45,11 +111,6 @@ export default function ExpenseTrackerApp() {
     filter === "all"
       ? transactions
       : transactions.filter((t) => t.type === filter);
-
-  const chartData = [
-    { name: "Income", value: totals.income, fill: "#22c55e" },
-    { name: "Expense", value: totals.expense, fill: "#ef4444" },
-  ].filter((d) => d.value > 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 md:p-8">
@@ -98,7 +159,7 @@ export default function ExpenseTrackerApp() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Section */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -173,50 +234,6 @@ export default function ExpenseTrackerApp() {
             </Card>
           </motion.div>
 
-          {/* Chart Section */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="bg-slate-800 border-slate-700 h-full">
-              <CardHeader className="border-b border-slate-700">
-                <CardTitle className="text-white text-2xl">Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center pt-6">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
-                        outerRadius={70}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value) => `₹${value.toFixed(2)}`}
-                        contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }}
-                        labelStyle={{ color: "#e2e8f0" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-slate-400 text-lg">No data yet</p>
-                    <p className="text-slate-500 text-sm mt-2">Add transactions to see visualization</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* Stats Section */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -259,6 +276,195 @@ export default function ExpenseTrackerApp() {
             )}
           </motion.div>
         </div>
+
+        {/* Investment Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-10"
+        >
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="border-b border-slate-700">
+              <CardTitle className="text-white text-2xl flex items-center gap-2">
+                <Wallet className="w-6 h-6" />
+                Investments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Add Investment Form */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-300">Add New Investment</h3>
+                  <div>
+                    <label className="text-sm font-semibold text-slate-300 mb-2 block">Investment Type</label>
+                    <Input
+                      placeholder="e.g., Stocks, Mutual Funds, Crypto..."
+                      value={investmentType}
+                      onChange={(e) => setInvestmentType(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-slate-300 mb-2 block">Amount Invested</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-slate-400">₹</span>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={investmentAmount}
+                        onChange={(e) => setInvestmentAmount(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-7 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-slate-300 mb-2 block">Profit/Loss</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-slate-400">₹</span>
+                      <Input
+                        type="number"
+                        placeholder="0.00 (negative for loss)"
+                        value={investmentProfitLoss}
+                        onChange={(e) => setInvestmentProfitLoss(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-7 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={addInvestment}
+                    className="w-full py-3 font-semibold text-base bg-purple-500 hover:bg-purple-600 text-white transition-all hover:shadow-lg"
+                  >
+                    <PlusCircle className="mr-2 h-5 w-5" />
+                    Add Investment
+                  </Button>
+                </div>
+
+                {/* Investment Summary */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-300">Investment Summary</h3>
+                  <div className="bg-slate-700 rounded-lg p-4">
+                    <p className="text-slate-400 text-sm">Total Invested</p>
+                    <p className="text-3xl font-bold text-white mt-1">₹{investmentTotals.totalInvested.toFixed(2)}</p>
+                  </div>
+                  <div className={`rounded-lg p-4 ${investmentTotals.totalProfitLoss >= 0 ? "bg-green-900/30" : "bg-red-900/30"}`}>
+                    <p className="text-slate-400 text-sm">Total Profit/Loss</p>
+                    <p className={`text-3xl font-bold mt-1 ${investmentTotals.totalProfitLoss >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {investmentTotals.totalProfitLoss >= 0 ? "+" : ""}₹{investmentTotals.totalProfitLoss.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg p-4 border border-purple-500/30">
+                    <p className="text-slate-400 text-sm">Current Value</p>
+                    <p className="text-3xl font-bold text-white mt-1">₹{investmentTotals.currentValue.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Investment List */}
+              {investments.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-slate-300 mb-4">Your Investments</h3>
+                  <div className="space-y-3">
+                    {investments.map((investment) => (
+                      <motion.div
+                        key={investment.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="flex items-center justify-between p-4 rounded-lg border bg-purple-900/20 border-purple-500/30 hover:border-purple-500/60 transition-all"
+                      >
+                        {editingInvestmentId === investment.id ? (
+                          <div className="flex-1 grid grid-cols-3 gap-3 mr-4">
+                            <Input
+                              value={editInvestmentType}
+                              onChange={(e) => setEditInvestmentType(e.target.value)}
+                              className="bg-slate-700 border-slate-600 text-white h-9"
+                              placeholder="Type"
+                            />
+                            <Input
+                              type="number"
+                              value={editInvestmentAmount}
+                              onChange={(e) => setEditInvestmentAmount(e.target.value)}
+                              className="bg-slate-700 border-slate-600 text-white h-9"
+                              placeholder="Amount"
+                            />
+                            <Input
+                              type="number"
+                              value={editInvestmentProfitLoss}
+                              onChange={(e) => setEditInvestmentProfitLoss(e.target.value)}
+                              className="bg-slate-700 border-slate-600 text-white h-9"
+                              placeholder="P/L"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex-1 flex items-center gap-4">
+                              <div className="p-2 rounded-lg bg-purple-500/20">
+                                <Wallet className="w-5 h-5 text-purple-400" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white">{investment.type}</p>
+                                <p className="text-xs text-slate-400">Invested: ₹{investment.amount.toFixed(2)}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className="font-bold text-white">₹{(investment.amount + investment.profitLoss).toFixed(2)}</p>
+                                <p className={`text-sm ${investment.profitLoss >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                  {investment.profitLoss >= 0 ? "+" : ""}₹{investment.profitLoss.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex items-center gap-2 ml-4">
+                          {editingInvestmentId === investment.id ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => saveEditInvestment(investment.id)}
+                                className="hover:bg-green-500/20 text-green-400"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={cancelEditInvestment}
+                                className="hover:bg-slate-500/20 text-slate-400"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditInvestment(investment)}
+                                className="hover:bg-blue-500/20 text-slate-400 hover:text-blue-400"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteInvestment(investment.id)}
+                                className="hover:bg-red-500/20 text-slate-400 hover:text-red-400"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Transactions List */}
         {transactions.length > 0 && (
