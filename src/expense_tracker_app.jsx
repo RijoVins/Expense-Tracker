@@ -40,16 +40,7 @@ export default function ExpenseTrackerApp() {
   const [editInvestmentAmount, setEditInvestmentAmount] = useState("");
   const [editInvestmentProfitLoss, setEditInvestmentProfitLoss] = useState("");
 
-  // Quick load - set loading to false immediately if we have cached data
-  useEffect(() => {
-    if (currentUser) {
-      const hasCachedTransactions = localStorage.getItem(`transactions_${currentUser.uid}`);
-      if (hasCachedTransactions) {
-        console.log("✨ Quick loading from cache");
-        setLoading(false);
-      }
-    }
-  }, [currentUser]);
+
 
   // Real-time listener for transactions
   useEffect(() => {
@@ -72,18 +63,6 @@ export default function ExpenseTrackerApp() {
       orderBy("createdAt", "desc")
     );
     
-    // Load from localStorage first for instant display
-    const cachedTransactions = localStorage.getItem(`transactions_${currentUser.uid}`);
-    if (cachedTransactions) {
-      try {
-        const parsed = JSON.parse(cachedTransactions);
-        setTransactions(parsed);
-        console.log("📦 Loaded from cache:", parsed.length, "transactions");
-      } catch (e) {
-        console.error("Error parsing cached transactions:", e);
-      }
-    }
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       clearTimeout(timeout);
       const transactionData = snapshot.docs.map((doc) => ({
@@ -92,7 +71,6 @@ export default function ExpenseTrackerApp() {
       }));
       console.log("✅ Transactions loaded from Firestore:", transactionData.length);
       setTransactions(transactionData);
-      localStorage.setItem(`transactions_${currentUser.uid}`, JSON.stringify(transactionData));
       setLoading(false);
     }, (error) => {
       clearTimeout(timeout);
@@ -123,16 +101,6 @@ export default function ExpenseTrackerApp() {
       orderBy("createdAt", "desc")
     );
     
-    // Load from localStorage first for instant display
-    const cachedInvestments = localStorage.getItem(`investments_${currentUser.uid}`);
-    if (cachedInvestments) {
-      try {
-        setInvestments(JSON.parse(cachedInvestments));
-      } catch (e) {
-        console.error("Error parsing cached investments:", e);
-      }
-    }
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const investmentData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -140,8 +108,6 @@ export default function ExpenseTrackerApp() {
       }));
       console.log("✅ Investments loaded from Firestore:", investmentData.length);
       setInvestments(investmentData);
-      // Cache to localStorage for offline support
-      localStorage.setItem(`investments_${currentUser.uid}`, JSON.stringify(investmentData));
     }, (error) => {
       console.error("❌ Error fetching investments from Firestore:", error.code, error.message);
       
@@ -158,50 +124,24 @@ export default function ExpenseTrackerApp() {
   const addTransaction = async () => {
     if (!description || !amount || !currentUser) return;
     
-    // Create the transaction object immediately (optimistic update)
-    const newTransaction = {
-      id: Date.now().toString(),
-      userId: currentUser.uid,
-      type,
-      description,
-      amount: parseFloat(amount),
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Show it immediately in UI
-    setTransactions([newTransaction, ...transactions]);
-    
-    // Save to localStorage immediately
-    const saved = localStorage.getItem(`transactions_${currentUser.uid}`);
-    const allTransactions = saved ? JSON.parse(saved) : [];
-    allTransactions.unshift(newTransaction);
-    localStorage.setItem(`transactions_${currentUser.uid}`, JSON.stringify(allTransactions));
-    
-    console.log("💾 Transaction added locally (visible immediately)");
-    
-    // Clear form
+    // Clear form immediately
     setDescription("");
     setAmount("");
     
-    // Try to save to Firestore in background
+    // Save to Firestore
     try {
-      const docRef = await addDoc(collection(db, "transactions"), {
+      await addDoc(collection(db, "transactions"), {
         userId: currentUser.uid,
         type,
         description,
         amount: parseFloat(amount),
         createdAt: serverTimestamp(),
       });
-      console.log("✅ Transaction synced to Firestore with ID:", docRef.id);
-      
-      // Update the local transaction with the real Firestore ID
-      setTransactions(prev => prev.map(t => 
-        t.id === newTransaction.id ? { ...t, id: docRef.id } : t
-      ));
+      console.log("✅ Transaction saved to Firestore");
     } catch (error) {
-      console.error("❌ Failed to sync to Firestore:", error.code, error.message);
+      console.error("❌ Failed to save transaction:", error.code, error.message);
       if (error.code === "permission-denied") {
-        alert("⚠️ Firestore Permission Error!\n\nYour data is saved locally. Check Firebase console rules.");
+        alert("⚠️ Firestore Permission Error!\n\nCheck your Firestore security rules.");
       }
     }
   };
@@ -211,10 +151,6 @@ export default function ExpenseTrackerApp() {
       await deleteDoc(doc(db, "transactions", id));
     } catch (error) {
       console.error("Error deleting transaction:", error);
-      // Fallback to localStorage
-      const updated = transactions.filter((t) => t.id !== id);
-      setTransactions(updated);
-      localStorage.setItem("transactions", JSON.stringify(updated));
     }
   };
 
@@ -222,51 +158,25 @@ export default function ExpenseTrackerApp() {
   const addInvestment = async () => {
     if (!investmentType || !investmentAmount || !currentUser) return;
     
-    // Create the investment object immediately (optimistic update)
-    const newInvestment = {
-      id: Date.now().toString(),
-      userId: currentUser.uid,
-      type: investmentType,
-      amount: parseFloat(investmentAmount),
-      profitLoss: parseFloat(investmentProfitLoss) || 0,
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Show it immediately in UI
-    setInvestments([newInvestment, ...investments]);
-    
-    // Save to localStorage immediately
-    const saved = localStorage.getItem(`investments_${currentUser.uid}`);
-    const allInvestments = saved ? JSON.parse(saved) : [];
-    allInvestments.unshift(newInvestment);
-    localStorage.setItem(`investments_${currentUser.uid}`, JSON.stringify(allInvestments));
-    
-    console.log("💾 Investment added locally (visible immediately)");
-    
-    // Clear form
+    // Clear form immediately
     setInvestmentType("");
     setInvestmentAmount("");
     setInvestmentProfitLoss("");
     
-    // Try to save to Firestore in background
+    // Save to Firestore
     try {
-      const docRef = await addDoc(collection(db, "investments"), {
+      await addDoc(collection(db, "investments"), {
         userId: currentUser.uid,
         type: investmentType,
         amount: parseFloat(investmentAmount),
         profitLoss: parseFloat(investmentProfitLoss) || 0,
         createdAt: serverTimestamp(),
       });
-      console.log("✅ Investment synced to Firestore with ID:", docRef.id);
-      
-      // Update the local investment with the real Firestore ID
-      setInvestments(prev => prev.map(inv => 
-        inv.id === newInvestment.id ? { ...inv, id: docRef.id } : inv
-      ));
+      console.log("✅ Investment saved to Firestore");
     } catch (error) {
-      console.error("❌ Failed to sync investment to Firestore:", error.code, error.message);
+      console.error("❌ Failed to save investment:", error.code, error.message);
       if (error.code === "permission-denied") {
-        alert("⚠️ Firestore Permission Error!\n\nYour data is saved locally. Check Firebase console rules.");
+        alert("⚠️ Firestore Permission Error!\n\nCheck your Firestore security rules.");
       }
     }
   };
@@ -276,10 +186,6 @@ export default function ExpenseTrackerApp() {
       await deleteDoc(doc(db, "investments", id));
     } catch (error) {
       console.error("Error deleting investment:", error);
-      // Fallback to localStorage
-      const updated = investments.filter((inv) => inv.id !== id);
-      setInvestments(updated);
-      localStorage.setItem("investments", JSON.stringify(updated));
     }
   };
 
@@ -303,23 +209,6 @@ export default function ExpenseTrackerApp() {
       setEditInvestmentProfitLoss("");
     } catch (error) {
       console.error("Error updating investment:", error);
-      // Fallback to localStorage
-      const updated = investments.map((inv) =>
-        inv.id === id
-          ? {
-              ...inv,
-              type: editInvestmentType,
-              amount: parseFloat(editInvestmentAmount),
-              profitLoss: parseFloat(editInvestmentProfitLoss) || 0,
-            }
-          : inv
-      );
-      setInvestments(updated);
-      localStorage.setItem("investments", JSON.stringify(updated));
-      setEditingInvestmentId(null);
-      setEditInvestmentType("");
-      setEditInvestmentAmount("");
-      setEditInvestmentProfitLoss("");
     }
   };
 
