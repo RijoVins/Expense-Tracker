@@ -54,24 +54,31 @@ export default function ExpenseTrackerApp() {
   // Real-time listener for transactions
   useEffect(() => {
     if (!currentUser) {
+      console.log("📭 No user, clearing transactions");
       setTransactions([]);
       setLoading(false);
       return;
     }
 
+    console.log("🔥 Setting up transaction listener for user:", currentUser.uid);
+
     // Safety timeout - loading should never take more than 15 seconds
     const timeout = setTimeout(() => {
-      console.warn("⚠️ Loading timeout (15s) - showing cached data");
+      console.warn("⚠️ Loading timeout (15s) - listener did not respond");
       setLoading(false);
     }, 15000);
 
     const transactionsRef = collection(db, "transactions");
+    console.log("📚 Firestore collection ready");
+    
     const q = query(
       transactionsRef, 
       where("userId", "==", currentUser.uid)
     );
+    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("📩 onSnapshot callback fired!");
       clearTimeout(timeout);
       const transactionData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -82,10 +89,11 @@ export default function ExpenseTrackerApp() {
         const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
         return bTime - aTime;
       });
-      console.log("✅ Transactions loaded from Firestore:", transactionData.length);
+      console.log("✅ Transactions loaded from Firestore:", transactionData.length, transactionData);
       setTransactions(transactionData);
       setLoading(false);
     }, (error) => {
+      console.log("❌ onSnapshot error callback fired!");
       clearTimeout(timeout);
       console.error("❌ Error fetching transactions:", error.code, error.message);
       console.error("Full error:", error);
@@ -93,7 +101,9 @@ export default function ExpenseTrackerApp() {
       setLoading(false);
     });
 
+    console.log("✨ Listener subscribed");
     return () => {
+      console.log("🛑 Cleaning up transaction listener");
       clearTimeout(timeout);
       unsubscribe();
     };
@@ -102,17 +112,24 @@ export default function ExpenseTrackerApp() {
   // Real-time listener for investments
   useEffect(() => {
     if (!currentUser) {
+      console.log("📭 No user, clearing investments");
       setInvestments([]);
       return;
     }
 
+    console.log("🔥 Setting up investment listener for user:", currentUser.uid);
+
     const investmentsRef = collection(db, "investments");
+    console.log("📚 Firestore collection ready");
+    
     const q = query(
       investmentsRef,
       where("userId", "==", currentUser.uid)
     );
+    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("📩 onSnapshot callback fired for investments!");
       const investmentData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -122,15 +139,20 @@ export default function ExpenseTrackerApp() {
         const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
         return bTime - aTime;
       });
-      console.log("✅ Investments loaded from Firestore:", investmentData.length);
+      console.log("✅ Investments loaded from Firestore:", investmentData.length, investmentData);
       setInvestments(investmentData);
     }, (error) => {
+      console.log("❌ onSnapshot error callback fired for investments!");
       console.error("❌ Error fetching investments from Firestore:", error.code, error.message);
       console.error("Full error:", error);
       alert(`❌ Firestore Error: ${error.code}\n${error.message}`);
     });
 
-    return () => unsubscribe();
+    console.log("✨ Investment listener subscribed");
+    return () => {
+      console.log("🛑 Cleaning up investment listener");
+      unsubscribe();
+    };
   }, [currentUser]);
 
   const addTransaction = async () => {
