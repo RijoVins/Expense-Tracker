@@ -40,6 +40,15 @@ export default function ExpenseTrackerApp() {
   const [editInvestmentAmount, setEditInvestmentAmount] = useState("");
   const [editInvestmentProfitLoss, setEditInvestmentProfitLoss] = useState("");
 
+  // Log current user for debugging
+  useEffect(() => {
+    if (currentUser) {
+      console.log("✅ User logged in:", currentUser.email, "UID:", currentUser.uid);
+    } else {
+      console.log("⚠️ No user logged in");
+    }
+  }, [currentUser]);
+
 
 
   // Real-time listener for transactions
@@ -146,11 +155,10 @@ export default function ExpenseTrackerApp() {
         createdAt: serverTimestamp(),
       });
       console.log("✅ Transaction saved to Firestore");
+      alert("✅ Transaction saved!");
     } catch (error) {
       console.error("❌ Failed to save transaction:", error.code, error.message);
-      if (error.code === "permission-denied") {
-        alert("⚠️ Firestore Permission Error!\n\nCheck your Firestore security rules.");
-      }
+      alert(`❌ Error: ${error.code}\n${error.message}`);
     }
   };
 
@@ -181,11 +189,10 @@ export default function ExpenseTrackerApp() {
         createdAt: serverTimestamp(),
       });
       console.log("✅ Investment saved to Firestore");
+      alert("✅ Investment saved!");
     } catch (error) {
       console.error("❌ Failed to save investment:", error.code, error.message);
-      if (error.code === "permission-denied") {
-        alert("⚠️ Firestore Permission Error!\n\nCheck your Firestore security rules.");
-      }
+      alert(`❌ Error: ${error.code}\n${error.message}`);
     }
   };
 
