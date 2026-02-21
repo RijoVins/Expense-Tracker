@@ -16,8 +16,7 @@ import {
   onSnapshot,
   query, 
   orderBy, 
-  serverTimestamp,
-  where
+  serverTimestamp
 } from "firebase/firestore";
 
 export default function ExpenseTrackerApp() {
@@ -71,11 +70,9 @@ export default function ExpenseTrackerApp() {
     const transactionsRef = collection(db, "transactions");
     console.log("📚 Firestore collection ready");
     
-    const q = query(
-      transactionsRef, 
-      where("userId", "==", currentUser.uid)
-    );
-    console.log("🔍 Query created with userId:", currentUser.uid);
+    // Temporarily query ALL documents to test connection
+    const q = query(transactionsRef);
+    console.log("🔍 Query created (NO WHERE CLAUSE - testing connection)");
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log("📩 onSnapshot callback fired!");
@@ -122,11 +119,9 @@ export default function ExpenseTrackerApp() {
     const investmentsRef = collection(db, "investments");
     console.log("📚 Firestore collection ready");
     
-    const q = query(
-      investmentsRef,
-      where("userId", "==", currentUser.uid)
-    );
-    console.log("🔍 Query created with userId:", currentUser.uid);
+    // Temporarily query ALL documents to test connection
+    const q = query(investmentsRef);
+    console.log("🔍 Query created (NO WHERE CLAUSE - testing connection)");
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log("📩 onSnapshot callback fired for investments!");
