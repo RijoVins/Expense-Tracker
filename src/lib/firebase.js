@@ -14,13 +14,29 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
 };
 
+console.log("🔧 Firebase Config loaded:");
+console.log({
+  apiKey: firebaseConfig.apiKey?.substring(0, 10) + "...",
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  appId: firebaseConfig.appId,
+});
+
+// Check if we have placeholder values
+if (firebaseConfig.apiKey.includes("YOUR_")) {
+  console.error("❌ Firebase config has placeholder values! Environment variables not loaded!");
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+console.log("✅ Firebase app initialized");
 
 // Initialize Firestore
 const db = getFirestore(app);
+console.log("✅ Firestore initialized");
 
 // Initialize Authentication
 const auth = getAuth(app);
+console.log("✅ Firebase Auth initialized");
 
 export { db, auth };
