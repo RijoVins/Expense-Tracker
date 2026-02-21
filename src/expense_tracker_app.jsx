@@ -16,7 +16,8 @@ import {
   onSnapshot,
   query, 
   orderBy, 
-  serverTimestamp
+  serverTimestamp,
+  where
 } from "firebase/firestore";
 
 export default function ExpenseTrackerApp() {
@@ -42,9 +43,7 @@ export default function ExpenseTrackerApp() {
   // Log current user for debugging
   useEffect(() => {
     if (currentUser) {
-      console.log("✅ User logged in:", currentUser.email, "UID:", currentUser.uid);
-    } else {
-      console.log("⚠️ No user logged in");
+      console.log("✅ User authenticated:", currentUser.email);
     }
   }, [currentUser]);
 
@@ -70,9 +69,11 @@ export default function ExpenseTrackerApp() {
     const transactionsRef = collection(db, "transactions");
     console.log("📚 Firestore collection ready");
     
-    // Temporarily query ALL documents to test connection
-    const q = query(transactionsRef);
-    console.log("🔍 Query created (NO WHERE CLAUSE - testing connection)");
+    const q = query(
+      transactionsRef,
+      where("userId", "==", currentUser.uid)
+    );
+    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log("📩 onSnapshot callback fired!");
@@ -119,9 +120,11 @@ export default function ExpenseTrackerApp() {
     const investmentsRef = collection(db, "investments");
     console.log("📚 Firestore collection ready");
     
-    // Temporarily query ALL documents to test connection
-    const q = query(investmentsRef);
-    console.log("🔍 Query created (NO WHERE CLAUSE - testing connection)");
+    const q = query(
+      investmentsRef,
+      where("userId", "==", currentUser.uid)
+    );
+    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log("📩 onSnapshot callback fired for investments!");
