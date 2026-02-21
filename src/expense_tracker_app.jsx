@@ -52,56 +52,43 @@ export default function ExpenseTrackerApp() {
   // Real-time listener for transactions
   useEffect(() => {
     if (!currentUser) {
-      console.log("📭 No user, clearing transactions");
       setTransactions([]);
       setLoading(false);
       return;
     }
 
-    console.log("🔥 Setting up transaction listener for user:", currentUser.uid);
-
-    // Safety timeout - loading should never take more than 15 seconds
+    // Safety timeout - loading should never take more than 5 seconds
     const timeout = setTimeout(() => {
-      console.warn("⚠️ Loading timeout (15s) - listener did not respond");
+      console.warn("⚠️ Loading timeout - Firestore query took too long");
       setLoading(false);
-    }, 15000);
+    }, 5000);
 
     const transactionsRef = collection(db, "transactions");
-    console.log("📚 Firestore collection ready");
-    
     const q = query(
       transactionsRef,
       where("userId", "==", currentUser.uid)
     );
-    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log("📩 onSnapshot callback fired!");
       clearTimeout(timeout);
       const transactionData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })).sort((a, b) => {
-        // Sort by createdAt descending
         const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt);
         const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
         return bTime - aTime;
       });
-      console.log("✅ Transactions loaded from Firestore:", transactionData.length, transactionData);
+      console.log("✅ Transactions:", transactionData.length);
       setTransactions(transactionData);
       setLoading(false);
     }, (error) => {
-      console.log("❌ onSnapshot error callback fired!");
       clearTimeout(timeout);
-      console.error("❌ Error fetching transactions:", error.code, error.message);
-      console.error("Full error:", error);
-      alert(`❌ Firestore Error: ${error.code}\n${error.message}`);
+      console.error("❌ Transaction error:", error.code, error.message);
       setLoading(false);
     });
 
-    console.log("✨ Listener subscribed");
     return () => {
-      console.log("🛑 Cleaning up transaction listener");
       clearTimeout(timeout);
       unsubscribe();
     };
@@ -110,65 +97,40 @@ export default function ExpenseTrackerApp() {
   // Real-time listener for investments
   useEffect(() => {
     if (!currentUser) {
-      console.log("📭 No user, clearing investments");
       setInvestments([]);
       return;
     }
 
-    console.log("🔥 Setting up investment listener for user:", currentUser.uid);
-
     const investmentsRef = collection(db, "investments");
-    console.log("📚 Firestore collection ready");
-    
     const q = query(
       investmentsRef,
       where("userId", "==", currentUser.uid)
     );
-    console.log("🔍 Query created with userId:", currentUser.uid);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log("📩 onSnapshot callback fired for investments!");
       const investmentData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })).sort((a, b) => {
-        // Sort by createdAt descending
         const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt);
         const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
         return bTime - aTime;
       });
-      console.log("✅ Investments loaded from Firestore:", investmentData.length, investmentData);
+      console.log("✅ Investments:", investmentData.length);
       setInvestments(investmentData);
     }, (error) => {
-      console.log("❌ onSnapshot error callback fired for investments!");
-      console.error("❌ Error fetching investments from Firestore:", error.code, error.message);
-      console.error("Full error:", error);
-      alert(`❌ Firestore Error: ${error.code}\n${error.message}`);
+      console.error("❌ Investment error:", error.code, error.message);
     });
 
-    console.log("✨ Investment listener subscribed");
-    return () => {
-      console.log("🛑 Cleaning up investment listener");
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [currentUser]);
 
   const addTransaction = async () => {
-    console.log("🔵 addTransaction called");
-    console.log("   description:", description, "amount:", amount, "currentUser:", !!currentUser);
+    if (!description || !amount || !currentUser) return;
     
-    if (!description || !amount || !currentUser) {
-      console.log("❌ Early return - missing fields");
-      return;
-    }
-    
-    console.log("✏️ Clearing form");
-    // Clear form immediately
     setDescription("");
     setAmount("");
     
-    console.log("💾 Attempting to save to Firestore...");
-    // Save to Firestore
     try {
       await addDoc(collection(db, "transactions"), {
         userId: currentUser.uid,
@@ -177,11 +139,10 @@ export default function ExpenseTrackerApp() {
         amount: parseFloat(amount),
         createdAt: serverTimestamp(),
       });
-      console.log("✅ Transaction saved to Firestore");
-      alert("✅ Transaction saved!");
+      console.log("✅ Transaction saved");
     } catch (error) {
-      console.error("❌ Failed to save transaction:", error.code, error.message);
-      alert(`❌ Error: ${error.code}\n${error.message}`);
+      console.error("❌ Error:", error.code, error.message);
+      alert(`Error: ${error.code}`);
     }
   };
 
