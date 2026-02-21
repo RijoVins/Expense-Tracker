@@ -151,12 +151,20 @@ export default function ExpenseTrackerApp() {
   }, [currentUser]);
 
   const addTransaction = async () => {
-    if (!description || !amount || !currentUser) return;
+    console.log("🔵 addTransaction called");
+    console.log("   description:", description, "amount:", amount, "currentUser:", !!currentUser);
     
+    if (!description || !amount || !currentUser) {
+      console.log("❌ Early return - missing fields");
+      return;
+    }
+    
+    console.log("✏️ Clearing form");
     // Clear form immediately
     setDescription("");
     setAmount("");
     
+    console.log("💾 Attempting to save to Firestore...");
     // Save to Firestore
     try {
       await addDoc(collection(db, "transactions"), {
