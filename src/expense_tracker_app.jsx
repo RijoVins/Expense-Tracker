@@ -59,8 +59,7 @@ export default function ExpenseTrackerApp() {
     const transactionsRef = collection(db, "transactions");
     const q = query(
       transactionsRef, 
-      where("userId", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", currentUser.uid)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -68,7 +67,12 @@ export default function ExpenseTrackerApp() {
       const transactionData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })).sort((a, b) => {
+        // Sort by createdAt descending
+        const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return bTime - aTime;
+      });
       console.log("✅ Transactions loaded from Firestore:", transactionData.length);
       setTransactions(transactionData);
       setLoading(false);
@@ -97,15 +101,19 @@ export default function ExpenseTrackerApp() {
     const investmentsRef = collection(db, "investments");
     const q = query(
       investmentsRef,
-      where("userId", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", currentUser.uid)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const investmentData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })).sort((a, b) => {
+        // Sort by createdAt descending
+        const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return bTime - aTime;
+      });
       console.log("✅ Investments loaded from Firestore:", investmentData.length);
       setInvestments(investmentData);
     }, (error) => {
