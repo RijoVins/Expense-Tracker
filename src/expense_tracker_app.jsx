@@ -59,11 +59,11 @@ export default function ExpenseTrackerApp() {
       return;
     }
 
-    // Safety timeout - loading should never take more than 5 seconds
+    // Safety timeout - loading should never take more than 15 seconds
     const timeout = setTimeout(() => {
-      console.warn("⚠️ Loading timeout - showing cached data");
+      console.warn("⚠️ Loading timeout (15s) - showing cached data");
       setLoading(false);
-    }, 5000);
+    }, 15000);
 
     const transactionsRef = collection(db, "transactions");
     const q = query(
@@ -88,9 +88,8 @@ export default function ExpenseTrackerApp() {
     }, (error) => {
       clearTimeout(timeout);
       console.error("❌ Error fetching transactions:", error.code, error.message);
-      if (error.code === "permission-denied") {
-        console.warn("⚠️ Permission denied! Showing cached data only.");
-      }
+      console.error("Full error:", error);
+      alert(`❌ Firestore Error: ${error.code}\n${error.message}`);
       setLoading(false);
     });
 
@@ -127,12 +126,8 @@ export default function ExpenseTrackerApp() {
       setInvestments(investmentData);
     }, (error) => {
       console.error("❌ Error fetching investments from Firestore:", error.code, error.message);
-      
-      // Try to load from Firestore root level as fallback
-      if (error.code === "permission-denied") {
-        console.warn("⚠️ Permission denied! Check your Firestore security rules.");
-      }
-      // Keep cached data if Firestore fails
+      console.error("Full error:", error);
+      alert(`❌ Firestore Error: ${error.code}\n${error.message}`);
     });
 
     return () => unsubscribe();
