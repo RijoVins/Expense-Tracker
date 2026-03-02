@@ -7,7 +7,7 @@ function AppContent() {
   
   return currentUser ? <ExpenseTrackerApp /> : <LoginPage />
 }
-{}
+
 export default function App() {
   return (
     <AuthProvider>
