@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { PlusCircle, Trash2, TrendingUp, TrendingDown, Wallet, Edit2, Check, X, Loader2, LogOut } from "lucide-react";
+import { PlusCircle, Trash2, TrendingUp, TrendingDown, Wallet, Edit2, Check, X, Loader2, LogOut, BarChart3 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { 
@@ -27,6 +27,7 @@ export default function ExpenseTrackerApp() {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [filter, setFilter] = useState("all");
+  const [reportType, setReportType] = useState("monthly");
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -233,6 +234,44 @@ export default function ExpenseTrackerApp() {
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
     return { income, expense, balance: income - expense };
+  }, [transactions]);
+
+  const reports = useMemo(() => {
+    const monthly = {};
+    const yearly = {};
+
+    transactions.forEach(t => {
+      let date;
+      if (t.createdAt) {
+        date = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      } else {
+        date = new Date();
+      }
+
+      const monthYear = date.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+      const year = date.getFullYear().toString();
+
+      if (!monthly[monthYear]) {
+        monthly[monthYear] = { income: 0, expense: 0, label: monthYear, time: date.getTime() };
+      }
+      if (!yearly[year]) {
+        yearly[year] = { income: 0, expense: 0, label: year, time: new Date(year, 0, 1).getTime() };
+      }
+
+      const amount = parseFloat(t.amount) || 0;
+      if (t.type === 'income') {
+        monthly[monthYear].income += amount;
+        yearly[year].income += amount;
+      } else if (t.type === 'expense') {
+        monthly[monthYear].expense += amount;
+        yearly[year].expense += amount;
+      }
+    });
+
+    return {
+      monthly: Object.values(monthly).sort((a, b) => b.time - a.time),
+      yearly: Object.values(yearly).sort((a, b) => b.time - a.time)
+    };
   }, [transactions]);
 
   const filteredTransactions =
@@ -722,6 +761,78 @@ export default function ExpenseTrackerApp() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Reports Section */}
+        {transactions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-10 mb-10"
+          >
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="border-b border-slate-700">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <CardTitle className="text-white text-2xl flex items-center gap-2">
+                    <BarChart3 className="w-6 h-6" />
+                    Financial Reports
+                  </CardTitle>
+                  <Tabs defaultValue={reportType}>
+                    <TabsList className="bg-slate-700">
+                      <TabsTrigger 
+                        value="monthly" 
+                        onClick={() => setReportType("monthly")}
+                        className="data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white"
+                      >
+                        Monthly
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="yearly"
+                        onClick={() => setReportType("yearly")}
+                        className="data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white"
+                      >
+                        Yearly
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(reportType === "monthly" ? reports.monthly : reports.yearly).map((report) => (
+                    <motion.div 
+                      key={report.label}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-slate-700/50 p-5 rounded-xl border border-slate-600 hover:border-slate-500 transition-all"
+                    >
+                      <h4 className="text-white font-semibold mb-4 text-lg border-b border-slate-600 pb-2">{report.label}</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-sm flex items-center gap-1">
+                            Income
+                          </span>
+                          <span className="text-green-400 font-medium">Rs.{report.income.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-sm flex items-center gap-1">
+                            Expense
+                          </span>
+                          <span className="text-red-400 font-medium">Rs.{report.expense.toFixed(2)}</span>
+                        </div>
+                        <div className="pt-3 mt-1 border-t border-slate-600 flex justify-between items-center">
+                          <span className="text-slate-300 font-medium">Balance</span>
+                          <span className={`font-bold ${report.income - report.expense >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                            {report.income - report.expense >= 0 ? "+" : ""}Rs.{(report.income - report.expense).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
