@@ -771,40 +771,46 @@ export default function ExpenseTrackerApp() {
         )}
 
         {/* Reports Section */}
-        {transactions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-10 mb-10"
-          >
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="border-b border-slate-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <CardTitle className="text-white text-2xl flex items-center gap-2">
-                    <BarChart3 className="w-6 h-6" />
-                    Financial Reports
-                  </CardTitle>
-                  <Tabs defaultValue={reportType}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-10 mb-10"
+        >
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="border-b border-slate-700">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <CardTitle className="text-white text-2xl flex items-center gap-2">
+                  <BarChart3 className="w-6 h-6" />
+                  Financial Reports
+                </CardTitle>
+                {transactions.length > 0 && (
+                  <Tabs defaultValue={reportType} onValueChange={(v) => setReportType(v)}>
                     <TabsList className="bg-slate-700">
                       <TabsTrigger 
                         value="monthly" 
                         onClick={() => setReportType("monthly")}
-                        className="data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white"
+                        className={`data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white ${reportType === 'monthly' ? 'bg-blue-600 text-white' : ''}`}
                       >
                         Monthly
                       </TabsTrigger>
                       <TabsTrigger 
                         value="yearly"
                         onClick={() => setReportType("yearly")}
-                        className="data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white"
+                        className={`data-[state=active]:bg-blue-600 text-slate-300 data-[state=active]:text-white ${reportType === 'yearly' ? 'bg-blue-600 text-white' : ''}`}
                       >
                         Yearly
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {transactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-slate-400">Add transactions to see your financial reports.</p>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-6">
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {(reportType === "monthly" ? reports.monthly : reports.yearly).map((report) => (
                     <motion.div 
@@ -837,10 +843,10 @@ export default function ExpenseTrackerApp() {
                     </motion.div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
     </div>
   );
