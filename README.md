@@ -233,4 +233,3 @@ For issues, check:
 ## 🎉 Built with ❤️
 
 Happy expense tracking! 💰
-"
