@@ -21,6 +21,7 @@ console.log({
   projectId: firebaseConfig.projectId,
   appId: firebaseConfig.appId,
 });
+()
 
 // Check if we have placeholder values
 if (firebaseConfig.apiKey.includes("YOUR_")) {
